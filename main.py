@@ -17,6 +17,8 @@ templates = Jinja2Templates(directory="templates")
 s3 = boto3.client("s3",aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),aws_secret_access_key=os.getenv("AWS_SECRET_KEY"))
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
+dynamo = boto3.client('dynamodb')
+TABLE_NAME = os.getenv("TABLE_NAME")
 class ProgressPercentage(object):
     def __init__(self, filename, size):
         self._filename = filename
@@ -74,7 +76,18 @@ async def upload(face_name, face_image: UploadFile = File(...), target_video: Up
                 }
             })
         s3.upload_fileobj(target_video.file, S3_BUCKET_NAME, target_video_object_name, Callback=video_progress)
-                
+        
+        db_response = dynamo.put_item(
+            TableName=TABLE_NAME,
+            Item={
+                'job_id' : {'S': job_id},
+                'job_status': {'S': 'UPLOADED'},
+                'image_filename' : {'S': face_image.filename},
+                'video_filename' : {'S': target_video.filename},
+                'face_name' : {'S': face_name},
+            }
+        )
+
         return {"message": "Contents uploaded successfully", "job_id": job_id}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
