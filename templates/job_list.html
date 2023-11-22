@@ -11,7 +11,7 @@
     <h1>Job list</h1>
     <ul id="jobs">
         {% for job in jobs %}
-            <li><a href="/jobs/{{job.id}}"><b>{{job.id}}</b> : {{job.datetime}}</a></li>
+            <li><a href="/jobs/{{job}}"><b>{{job}}</b></a></li>
         {% endfor %}    
     </ul>
 </body>

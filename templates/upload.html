@@ -9,9 +9,23 @@
 </head>
 <body>
     <h1>Image upload</h1>
+    <p>Please don't upload such face image</p>
+    <ul>
+        <li>The number of faces detected exceeds the value of the MaxFaces request parameter.</li>
+        <li>The face is too small compared to the image dimensions.</li>
+        <li>The face is too blurry.</li>
+        <li>The image is too dark.</li>
+        <li>The face has an extreme pose.</li>
+        <li>The face doesn’t have enough detail to be suitable for face search.</li>
+    </ul>
     <form action="/upload" method="post" enctype="multipart/form-data">
         <label for="image">Select Face Image File</label>
-        <input type="file" id="image" name="faceImg" accept="image/*">
+        <input type="file" id="image" name="face_image" accept="image/*">
+        <br>
+        <label for="face_name">Enter Name of Face</label>
+        <input type="text" name="face_name" id="face_name">
+        <label for="video">Select Target Video File</label>
+        <input type="file" id="video" name="target_video" accept="video/*">
         <input type="submit" value="Upload">
     </form>
 </body>

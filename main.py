@@ -4,7 +4,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import boto3
-import os
+import os, sys
+import uuid
+import threading
 
 load_dotenv()
 
@@ -12,35 +14,78 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-s3 = boto3.client("s3",aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"))
+s3 = boto3.client("s3",aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),aws_secret_access_key=os.getenv("AWS_SECRET_KEY"))
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
+class ProgressPercentage(object):
+    def __init__(self, filename, size):
+        self._filename = filename
+        self._size = size
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+        self.prog_bar_len = 80
+
+    def __call__(self, bytes_amount):
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            ratio = round((float(self._seen_so_far) / float(self._size)) * (self.prog_bar_len - 6), 1)
+            current_length = int(round(ratio))
+
+            percentage = round(100 * ratio / (self.prog_bar_len - 6), 1)
+
+            bars = '+' * current_length
+            output = bars + ' ' * (self.prog_bar_len - current_length - len(str(percentage)) - 1) + str(percentage) + '%'
+
+            if self._seen_so_far != self._size:
+                sys.stdout.write(output + '\r')
+            else:
+                sys.stdout.write(output + '\n')
+            sys.stdout.flush()
+
+
+
 @app.get("/")
-def index():
-    return templates.TemplateResponse("index.html", {"request": None})
+def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/upload", response_class=HTMLResponse)
 async def upload(request: Request):
     return templates.TemplateResponse("upload.html", {"request": request})
 
+## TODO : 업로드 시 progress bar 추가
 @app.post("/upload")
-async def upload(file: UploadFile = File(...)):
-    object_name = f"idxfile/{file.filename}"
+async def upload(face_name, face_image: UploadFile = File(...), target_video: UploadFile = File(...)):
+    job_id = str(uuid.uuid4())
+    # TODO : list_jobs 개편하면 버킷 구조를 face_image or target-video/job_id 로 설정
+    image_object_name = f"{job_id}/face_image/{face_image.filename}"
+    target_video_object_name = f"{job_id}/target-video/{target_video.filename}"
     try:
-        s3.upload_fileobj(file.file, S3_BUCKET_NAME, file.filename)
-        return {"message": "File uploaded successfully"}
+        image_progress = ProgressPercentage(face_image.filename, face_image.size)
+        video_progress = ProgressPercentage(target_video.filename, target_video.size)
+        
+        s3.upload_fileobj(
+            face_image.file, 
+            S3_BUCKET_NAME, 
+            image_object_name, 
+            Callback=image_progress, 
+            ExtraArgs={
+                "Metadata": {
+                    "face_name": face_name
+                }
+            })
+        s3.upload_fileobj(target_video.file, S3_BUCKET_NAME, target_video_object_name, Callback=video_progress)
+                
+        return {"message": "Contents uploaded successfully", "job_id": job_id}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
     
 @app.get("/jobs")
-async def list_jobs():
-    # get list of jobs from database
-    jobs = {
-        {"id": "1a2b3c", "datetime": "2023-11-22 00:40:12"},
-        {"id": "4d5e6f", "datetime": "2023-11-22 00:49:30"},
-        {"id": "7g8h9i", "datetime": "2023-11-22 00:59:12"},
-    }
-    return templates.TemplateResponse("job_list.html", {"request": None, "jobs": jobs})
+async def list_jobs(request: Request):
+    # TODO : get list of jobs from database, for now, just return s3 bucket list
+    job_list = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Delimiter='/')
+    print(job_list)
+    jobs = [ job_list['CommonPrefixes'][i]['Prefix'] for i in range(len(job_list['CommonPrefixes']))]
+    return templates.TemplateResponse("job_list.html", {"request": request, "jobs": jobs})
     
 @app.get("/jobs/{job_id}")
 async def read_job(job_id: str):
