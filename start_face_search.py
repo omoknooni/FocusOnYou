@@ -69,3 +69,9 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.error(e)
+        return {"statusCode": 500, "message": f"{str(e)}"}
+    
+    return {
+        'statusCode': 200,
+        'search_id': search_id
+    }
