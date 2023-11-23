@@ -22,10 +22,12 @@ def lambda_handler(event, context):
 
     bucket = noti_message['s3']['bucket']['name']
     key = noti_message['s3']['object']['key']
+    logger.info("Bucket : " + bucket)
+    logger.info("Key : " + key)
 
     # make collection if it doesn't exist
     # collectiodID는 job_id로
-    collection_id = key.split('/')[0]
+    collection_id = key.split('/')[1]
     try:
         rekog_response = rekog.create_collection(CollectionId=collection_id)
         if rekog_response['StatusCode'] == 200:

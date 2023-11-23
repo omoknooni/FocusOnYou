@@ -31,23 +31,41 @@ def lambda_handler(event, context):
             'job_id': {'S': job_id}
         }
     )
-
     video_name = db_response['Item']['video_name']['S']
 
 
+    # Start FaceSearch API 실행 후 결과 Publish
+    try:
+        response = rekog.start_face_search(
+            Video={
+                'S3Object': {
+                    'Bucket': FOCUSONYOU_BUCKET,
+                    'Name': 'target-video/' + job_id+'/'+video_name
+                }
+            },
+            CollectionId=job_id,
+            NotificationChannel={
+                'SNSTopicArn': SNS_TOPIC,
+                'RoleArn': ROLE_ARN       # The ARN of an IAM role that gives Amazon Rekognition publishing permissions to the Amazon SNS topic.
+            },
+            FaceMatchThreshold=90,
+        )
+        search_id = response['JobId']
+        logger.info("SearchId : " + search_id)
 
-    response = rekog.start_face_search(
-        Video={
-            'S3Object': {
-                'Bucket': FOCUSONYOU_BUCKET,
-                'Name': 'target-video/' + job_id+'/'+video_name
-            }
-        },
-        CollectionId=job_id,
-        NotificationChannel={
-            'SNSTopicArn': SNS_TOPIC,
-            'RoleArn': ROLE_ARN       # The ARN of an IAM role that gives Amazon Rekognition publishing permissions to the Amazon SNS topic.
-        },
-        FaceMatchThreshold=90,
-    )
+        # dynamodb에 search_id 저장
+        if search_id:
+            dynamo.update_item(
+                TableName=TABLE_NAME,
+                Key={
+                    'job_id': {'S': job_id}
+                },
+                UpdateExpression='SET search_id = :search_id, job_status = :job_status',
+                ExpressionAttributeValues={
+                    ':search_id': {'S': search_id},
+                    ':job_status': {'S': 'SEARCHED'}
+                }
+            )
 
+    except Exception as e:
+        logger.error(e)

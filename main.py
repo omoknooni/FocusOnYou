@@ -58,9 +58,9 @@ async def upload(request: Request):
 @app.post("/upload")
 async def upload(face_name, face_image: UploadFile = File(...), target_video: UploadFile = File(...)):
     job_id = str(uuid.uuid4())
-    # TODO : list_jobs 개편하면 버킷 구조를 face_image or target-video/job_id 로 설정
-    image_object_name = f"{job_id}/face_image/{face_image.filename}"
-    target_video_object_name = f"{job_id}/target-video/{target_video.filename}"
+    image_object_name = f"face_image/{job_id}/{face_image.filename}"
+    target_video_object_name = f"target-video/{job_id}/{target_video.filename}"
+
     try:
         image_progress = ProgressPercentage(face_image.filename, face_image.size)
         video_progress = ProgressPercentage(target_video.filename, target_video.size)
@@ -87,7 +87,9 @@ async def upload(face_name, face_image: UploadFile = File(...), target_video: Up
                 'face_name' : {'S': face_name},
             }
         )
-
+        # check the result of put_item
+        if db_response['ResponseMetadata']['HTTPStatusCode'] != 200:
+            raise Exception("Failed to put item in dynamodb")
         return {"message": "Contents uploaded successfully", "job_id": job_id}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
@@ -95,10 +97,21 @@ async def upload(face_name, face_image: UploadFile = File(...), target_video: Up
 @app.get("/jobs")
 async def list_jobs(request: Request):
     # TODO : get list of jobs from database, for now, just return s3 bucket list
-    job_list = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Delimiter='/')
-    print(job_list)
-    jobs = [ job_list['CommonPrefixes'][i]['Prefix'] for i in range(len(job_list['CommonPrefixes']))]
-    return templates.TemplateResponse("job_list.html", {"request": request, "jobs": jobs})
+    # job_list = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Delimiter='/')
+    # print(job_list)
+    # jobs = [ job_list['CommonPrefixes'][i]['Prefix'] for i in range(len(job_list['CommonPrefixes']))]
+    
+    # Retrieve primary key of dynamodb table
+    db_response = dynamo.scan(
+        TableName=TABLE_NAME,
+        Select='ALL_ATTRIBUTES',
+        ProjectionExpression='job_id'
+    )
+
+    count = db_response['Count']
+    jobs = db_response['Items']
+    jobs = [job['job_id']['S'] for job in jobs]
+    return templates.TemplateResponse("job_list.html", {"request": request, "jobs": jobs, "count": count})
     
 @app.get("/jobs/{job_id}")
 async def read_job(job_id: str):
