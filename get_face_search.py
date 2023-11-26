@@ -108,17 +108,28 @@ def lambda_handler(event, context):
         }
         detected_timestamp_str.append(input)
 
+    try:
+        # call elastic transcoder to stitch the timestamp and make new video
+        transcoder_job = tscoder.create_job(
+            PipelineId=pipeline_id,
+            Inputs=detected_timestamp_str,
+            Output={
+                'Key': message['job_id'] + '.mp4',
+            }
+        )
 
-    # call elastic transcoder to stitch the timestamp and make new video
-    transcoder_job = tscoder.create_job(
-        PipelineId=pipeline_id,
-        Inputs=detected_timestamp_str,
-        Output={
-            'Key': 'face_search_result/' + message['job_id'] + '.mp4',
-        }
-    )
+        transjob_id = transcoder_job['Job']['Id']
+        transjob_status = transcoder_job['Job']['Status']
+        logger.info(f'Transcoder job : {transjob_id}')
+        logger.info(f'Transcoder job status : {transjob_status}')
 
-    
+    except Exception as e:
+        logger.error(f'Error creating transcoder job: {e}')
+        transjob_id = None
+        transjob_status = "EXCEPTIONED"
+
     return {
-        "statusCode": 200
+        "job_id": message['job_id'],
+        "transjob_id": transcoder_job,
+        "transjob_status": transjob_status
     }

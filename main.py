@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from pathlib import Path
+
 import boto3
 import os, sys
 import uuid
@@ -44,6 +46,14 @@ class ProgressPercentage(object):
                 sys.stdout.write(output + '\n')
             sys.stdout.flush()
 
+ALLOWED_EXTENSION = {'png', 'jpg', 'jpeg', 'mp4', 'flv'}
+
+def allowed_file(filename):
+    file_ext = Path(filename).suffix[1:].lower()
+    if '.' in filename and file_ext in ALLOWED_EXTENSION:
+        return True
+    else:
+        return False
 
 
 @app.get("/")
@@ -57,6 +67,11 @@ async def upload(request: Request):
 ## TODO : 업로드 시 progress bar 추가
 @app.post("/upload")
 async def upload(face_name, face_image: UploadFile = File(...), target_video: UploadFile = File(...)):
+    
+    # file extension validation logic
+    if not allowed_file(face_image.filename) or not allowed_file(target_video.filename):
+        return JSONResponse(status_code=400, content={"message": "Invalid file extension"})
+
     job_id = str(uuid.uuid4())
     image_object_name = f"face_image/{job_id}/{face_image.filename}"
     target_video_object_name = f"target-video/{job_id}/{target_video.filename}"
@@ -115,4 +130,14 @@ async def list_jobs(request: Request):
     
 @app.get("/jobs/{job_id}")
 async def read_job(job_id: str):
-    return JSONResponse(content={"job_id": job_id, "status": "conpleted"})
+    try:
+        db_response = dynamo.get_item(
+            TableName=TABLE_NAME,
+            Key={
+                'job_id': {'S': job_id}
+            }
+        )
+        job_obj = db_response['Item']
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
+    return JSONResponse(content={"result": "Complete", "job_id": job_id, "Object": job_obj})
