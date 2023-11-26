@@ -11,6 +11,7 @@ dynamo = boto3.client('dynamodb')
 tscoder = boto3.client('elastictranascoder')
 
 pipeline_id = os.environ['PIPELINE_ID']
+TABLE_NAME = os.environ['TABLE_NAME']
 
 def lambda_handler(event, context):
     # get message from sqs queue
@@ -22,7 +23,7 @@ def lambda_handler(event, context):
 
     # get face_name from dynamodb table
     db_response = dynamo.get_item(
-        TableName='face_search_result',
+        TableName=TABLE_NAME,
         Key={
             'job_id': {'S': message['job_id']}
         },
@@ -52,7 +53,7 @@ def lambda_handler(event, context):
 
                     # update dynamodb table with face_id, face_name, similarity to dynamodb table
                     dynamo.update_item(
-                        TableName='face_search_result',
+                        TableName=TABLE_NAME,
                         Key={
                             'job_id': {'S': message['job_id']}
                         },
