@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div class="contaier mt-5">
+    <div class="container mt-5">
         <h1>Image upload</h1>
         <p>Please don't upload such face image</p>
         <ul>
@@ -20,24 +20,34 @@
             <li>The face doesn’t have enough detail to be suitable for face search.</li>
         </ul>
         <form action="/upload" method="post" id="upload_form" enctype="multipart/form-data">
-            <label for="image">Select Face Image File</label>
-            <input type="file" id="image" name="face_image" accept="image/*">
-            <br>
-            <label for="face_name">Enter Name of Face</label>
-            <input type="text" name="face_name" id="face_name">
-            <label for="video">Select Target Video File</label>
-            <input type="file" id="video" name="target_video" accept="video/*">
-            <input type="submit" value="Upload">
+            <div class="form-group row">
+                <label for="image" class="col-sm-2 col-form-label">Select Face Image File</label>
+                <div class="col-sm-10">
+                    <input type="file" class="form-control" id="image" name="face_image" accept="image/*">
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="face_name" class="col-sm-2 col-form-label">Enter Name of Face</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" name="face_name" id="face_name">
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="video" class="col-sm-2 col-form-label">Select Target Video File</label>
+                <div class="col-sm-10">
+                    <input type="file" class="form-control" id="video" name="target_video" accept="video/*">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="upload_button">
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                Upload
+            </button>    
         </form>
-        <button type="submit" class="btn btn-primary" id="upload_button">
-            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            Upload
-        </button>    
     </div>
     <script>
         document.getElementById("upload_form").addEventListener("submit", function() {
             document.getElementById("upload_button").disabled=true;
-            document.getElementById("uploadButton").querySelector(".spinner-border").classList.remove("d-none");
+            document.getElementById("upload_button").querySelector(".spinner-border").classList.remove("d-none");
         });
     </script>
 </body>

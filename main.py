@@ -1,7 +1,8 @@
-from fastapi import FastAPI, File, UploadFile, Request
+from fastapi import FastAPI, File, UploadFile, Request, Form
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -66,7 +67,7 @@ async def upload(request: Request):
 
 ## TODO : 업로드 시 progress bar 추가
 @app.post("/upload")
-async def upload(face_name, face_image: UploadFile = File(...), target_video: UploadFile = File(...)):
+async def upload(face_name: str = Form(...), face_image: UploadFile = File(...), target_video: UploadFile = File(...)):
     
     # file extension validation logic
     if not allowed_file(face_image.filename) or not allowed_file(target_video.filename):
@@ -111,23 +112,21 @@ async def upload(face_name, face_image: UploadFile = File(...), target_video: Up
     
 @app.get("/jobs")
 async def list_jobs(request: Request):
-    # TODO : get list of jobs from database, for now, just return s3 bucket list
-    # job_list = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Delimiter='/')
-    # print(job_list)
-    # jobs = [ job_list['CommonPrefixes'][i]['Prefix'] for i in range(len(job_list['CommonPrefixes']))]
-    
     # Retrieve primary key of dynamodb table
-    db_response = dynamo.scan(
-        TableName=TABLE_NAME,
-        Select='ALL_ATTRIBUTES',
-        ProjectionExpression='job_id'
-    )
+    try:
+        db_response = dynamo.scan(
+            TableName=TABLE_NAME,
+            Select='ALL_ATTRIBUTES',
+            ProjectionExpression='job_id'
+        )
 
-    count = db_response['Count']
-    jobs = db_response['Items']
-    jobs = [job['job_id']['S'] for job in jobs]
-    return templates.TemplateResponse("job_list.html", {"request": request, "jobs": jobs, "count": count})
-    
+        count = db_response['Count']
+        jobs = db_response['Items']
+        jobs = [job['job_id']['S'] for job in jobs]
+        return templates.TemplateResponse("job_list.html", {"request": request, "jobs": jobs, "count": count})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
+
 @app.get("/jobs/{job_id}")
 async def read_job(job_id: str):
     try:
