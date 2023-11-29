@@ -8,7 +8,7 @@ logger.setLevel(logging.INFO)
 
 rekog = boto3.client('rekognition')
 dynamo = boto3.client('dynamodb')
-tscoder = boto3.client('elastictranascoder')
+tscoder = boto3.client('elastictranscoder')
 
 pipeline_id = os.environ['PIPELINE_ID']
 TABLE_NAME = os.environ['TABLE_NAME']
@@ -20,12 +20,14 @@ def lambda_handler(event, context):
 
     # parse message from sqs queue which contains message from sns
     message = json.loads(sqs_message)
+    sns_message = json.loads(message['Message'])
+    job_id = sns_message['Video']['S3ObjectName'].split('/')[1]
 
     # get face_name from dynamodb table
     db_response = dynamo.get_item(
         TableName=TABLE_NAME,
         Key={
-            'job_id': {'S': message['job_id']}
+            'job_id': {'S': job_id }
         },
     )
     face_name = db_response['Item']['face_name']['S']
@@ -33,7 +35,7 @@ def lambda_handler(event, context):
 
     # GetFaceSearch API 실행
     rekog_response = rekog.get_face_search(
-        JobId=message['job_id'],
+        JobId=sns_message['JobId'],
         SortBy='INDEX'
     )
 
