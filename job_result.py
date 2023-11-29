@@ -11,8 +11,9 @@ logger.setLevel(logging.INFO)
 
 dynamo = boto3.client('dynamodb')
 
+FOCUSONYOU_RESULT_BUCKET = os.environ['FOCUSONYOU_RESULT_BUCKET']
 TABLE_NAME = os.environ['TABLE_NAME']
-SLACK_CHANNEL = os.environ['slackChannel']
+SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
 HOOK_URL = os.environ['HOOK_URL']
 
 def lambda_handler(event, context):
@@ -22,10 +23,8 @@ def lambda_handler(event, context):
     # parse message
     transjob_status = message.get('state')  # PROGRESSING|COMPLETED|WARNING|ERROR
     transjob_id = message.get('jobId')
-    pipeline_id = message.get('pipelineId')
-
-    # TODO : job_id를 어떻게 받아올것인가
-    job_id = message.get('messageDetails').get('job_id')
+    job_id = message.get('input').get('key').split('/')[1]
+    output_filename = message.get('outputs')[0].get('key')
 
     if transjob_status == 'COMPLETED':
         dynamo.update_item(
@@ -40,24 +39,30 @@ def lambda_handler(event, context):
         )
         slack_message = {
             'channel': SLACK_CHANNEL,
-            'text': f"*[FocusOnYou]*\n\nJob {job_id} has been completed!"
+            'text': f"*[FocusOnYou]*\n\nJob {job_id} has been completed!\nVideo : {'s3://'+FOCUSONYOU_RESULT_BUCKET+'/'+output_filename}"
         } 
+        
+        req = Request(HOOK_URL, json.dumps(slack_message).encode('utf-8'))
+        try:
+            response = urlopen(req)
+            response.read()
+            logger.info("Message posted to %s", slack_message['channel'])
+        except HTTPError as e:
+            logger.error("Request failed: %d %s", e.code, e.reason)
+        except URLError as e:
+            logger.error("Server connection failed: %s", e.reason)
+    elif transjob_status == 'ERROR':
+        dynamo.update_item(
+            TableName=TABLE_NAME,  
+            Key={
+                'job_id': {'S': job_id}
+            },
+            UpdateExpression="set job_status = :s",
+            ExpressionAttributeValues={
+                ':s': {'S': 'TRANSCODE_FAILED'},
+            }
+        )
+        logger.error(f'Job {transjob_id} is failed')
+        logger.error(f'Error message : {message}')
     else:
-        slack_message = {
-            'channel': SLACK_CHANNEL,
-            'text': f"*[FocusOnYou]*\n\nJob {job_id} not completed yet..."
-        } 
-    req = Request(HOOK_URL, json.dumps(slack_message).encode('utf-8'))
-    try:
-        response = urlopen(req)
-        response.read()
-        logger.info("Message posted to %s", slack_message['channel'])
-    except HTTPError as e:
-        logger.error("Request failed: %d %s", e.code, e.reason)
-    except URLError as e:
-        logger.error("Server connection failed: %s", e.reason)
-
-
-    return {
-        "statusCode": 200,
-    }
+        logger.info(f'Job {transjob_id} is {transjob_status}')

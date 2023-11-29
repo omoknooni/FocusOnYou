@@ -52,33 +52,28 @@ def lambda_handler(event, context):
                     # get timestamp of video when the face detected 
                     if face_matches['Face']['ExternalImageId'] == face_name:
                         detected_timestamp.append(person['Timestamp'])
-
-                    # update dynamodb table with face_id, face_name, similarity to dynamodb table
-                    dynamo.update_item(
-                        TableName=TABLE_NAME,
-                        Key={
-                            'job_id': {'S': message['job_id']}
-                        },
-                        UpdateExpression="SET face_id = :face_id, face_name = :face_name, similarity = :similarity, detected_timestamp = :detected_timestamp",
-                        ExpressionAttributeValues={
-                            ':face_id': {'S': face_matches['Face']['FaceId']},
-                            ':face_name': {'S': face_matches['Face']['ExternalImageId']},
-                            ':similarity': {'N': str(face_matches['Similarity'])},
-                            ':detected_timestamp': {'L': detected_timestamp}
-                        }
-                    )
-
             except KeyError:
                 pass
         if 'NextToken' in rekog_response:
             next_token = rekog_response['NextToken']
             rekog_response= rekog.get_face_search(
-                JobId=message['job_id'],
+                JobId=sns_message['JobId'],
                 SortBy='INDEX',
                 NextToken=next_token
             )
         else:
             break
+
+    dynamo.update_item(
+        TableName=TABLE_NAME,
+        Key={
+            'job_id': {'S': job_id}
+        },
+        UpdateExpression="SET job_status = :job_status",
+        ExpressionAttributeValues={
+            ':job_status': {'S': 'GET-SEARCHED'},
+        }
+    )
 
     # convert face search timestamp list to scene level
     scene_timestamp = []
@@ -103,7 +98,7 @@ def lambda_handler(event, context):
     for scene in scene_timestamp:
         start, end = scene
         input = {
-            'Key' : video_name,
+            'Key' : sns_message['Video']['S3ObjectName'],
             'TimeSpan': {
                 'StartTime': str(start/1000.),
                 'Duration': str((end-start)/1000.)
@@ -117,7 +112,7 @@ def lambda_handler(event, context):
             PipelineId=pipeline_id,
             Inputs=detected_timestamp_str,
             Output={
-                'Key': message['job_id'] + '.mp4',
+                'Key': job_id + '.mp4',
             }
         )
 
@@ -126,13 +121,24 @@ def lambda_handler(event, context):
         logger.info(f'Transcoder job : {transjob_id}')
         logger.info(f'Transcoder job status : {transjob_status}')
 
+        dynamo.update_item(
+            TableName=TABLE_NAME,
+            Key={
+                'job_id': {'S': job_id}
+            },
+            UpdateExpression="SET job_status = :job_status",
+            ExpressionAttributeValues={
+                ':job_status': {'S': 'TRANSCODING'},
+            }
+        )
+
     except Exception as e:
         logger.error(f'Error creating transcoder job: {e}')
         transjob_id = None
         transjob_status = "EXCEPTIONED"
 
     return {
-        "job_id": message['job_id'],
+        "job_id": job_id,
         "transjob_id": transcoder_job,
         "transjob_status": transjob_status
     }
