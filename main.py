@@ -1,8 +1,9 @@
 from fastapi import FastAPI, File, UploadFile, Request, Form
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from botocore.exceptions import ClientError
+from datetime import datetime
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -20,7 +21,7 @@ templates = Jinja2Templates(directory="templates")
 s3 = boto3.client("s3",aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),aws_secret_access_key=os.getenv("AWS_SECRET_KEY"))
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
-dynamo = boto3.client('dynamodb')
+dynamo = boto3.client('dynamodb', aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),aws_secret_access_key=os.getenv("AWS_SECRET_KEY"), region_name=os.getenv('AWS_REGION'))
 TABLE_NAME = os.getenv("TABLE_NAME")
 class ProgressPercentage(object):
     def __init__(self, filename, size):
@@ -101,12 +102,13 @@ async def upload(face_name: str = Form(...), face_image: UploadFile = File(...),
                 'image_filename' : {'S': face_image.filename},
                 'video_filename' : {'S': target_video.filename},
                 'face_name' : {'S': face_name},
+                'uploaded_at': {'S': str(datetime.now())},
             }
         )
         # check the result of put_item
         if db_response['ResponseMetadata']['HTTPStatusCode'] != 200:
             raise Exception("Failed to put item in dynamodb")
-        return {"message": "Contents uploaded successfully", "job_id": job_id}
+        return RedirectResponse(f"/jobs/{job_id}", status_code=302)
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
     
@@ -116,7 +118,7 @@ async def list_jobs(request: Request):
     try:
         db_response = dynamo.scan(
             TableName=TABLE_NAME,
-            Select='ALL_ATTRIBUTES',
+            Select='SPECIFIC_ATTRIBUTES',
             ProjectionExpression='job_id'
         )
 

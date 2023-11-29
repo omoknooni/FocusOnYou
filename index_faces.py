@@ -8,6 +8,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 SNS_TOPIC = os.environ['SNS_TOPIC']
+TABLE_NAME = os.environ['TABLE_NAME']
 
 rekog = boto3.client('rekognition')
 s3 = boto3.client('s3')
@@ -57,7 +58,8 @@ def lambda_handler(event, context):
     # 얼굴 추가 성공시 dynamodb에 저장
     if response['FaceRecords']:
         dynamo.update_item(
-            key={
+            TableName=TABLE_NAME,
+            Key={
                 'job_id': {'S': collection_id}
             },
             UpdateExpression='SET job_status = :job_status',

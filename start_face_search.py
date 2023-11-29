@@ -31,7 +31,7 @@ def lambda_handler(event, context):
             'job_id': {'S': job_id}
         }
     )
-    video_name = db_response['Item']['video_name']['S']
+    video_name = db_response['Item']['video_filename']['S']
 
 
     # Start FaceSearch API 실행 후 결과 Publish
