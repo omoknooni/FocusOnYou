@@ -74,6 +74,12 @@ async def upload(face_name: str = Form(...), face_image: UploadFile = File(...),
     if not allowed_file(face_image.filename) or not allowed_file(target_video.filename):
         return JSONResponse(status_code=400, content={"message": "Invalid file extension"})
 
+    # file size validation logic
+    max_file_size = 250 * 1024 * 1024 # 250MB
+    print(f'[*] Check file size : {face_image.size}, {target_video.size}')
+    if face_image.size > max_file_size or target_video.size > max_file_size:
+        return JSONResponse(status_code=400, content={"message": "File size exceeds 250MB"})
+
     job_id = str(uuid.uuid4())
     image_object_name = f"face_image/{job_id}/{face_image.filename}"
     target_video_object_name = f"target-video/{job_id}/{target_video.filename}"

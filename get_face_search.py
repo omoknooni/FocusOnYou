@@ -2,6 +2,7 @@ import boto3
 import json
 import logging
 import os
+from datetime import datetime
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -126,9 +127,10 @@ def lambda_handler(event, context):
             Key={
                 'job_id': {'S': job_id}
             },
-            UpdateExpression="SET job_status = :job_status",
+            UpdateExpression="SET job_status = :job_status, transcode_start = :transcode_start",
             ExpressionAttributeValues={
                 ':job_status': {'S': 'TRANSCODING'},
+                ':transcode_start': {'S': str(datetime.now())}
             }
         )
 
