@@ -65,7 +65,7 @@ def lambda_handler(event, context):
                 ExpressionAttributeValues={
                     ':search_id': {'S': search_id},
                     ':job_status': {'S': 'SEARCHED'},
-                    ':searchjob_start': {'S': str(datetime.now())}'
+                    ':searchjob_start': {'S': str(datetime.now())}
                 }
             )
 

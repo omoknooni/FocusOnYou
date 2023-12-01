@@ -125,18 +125,17 @@ async def list_jobs(request: Request):
         db_response = dynamo.scan(
             TableName=TABLE_NAME,
             Select='SPECIFIC_ATTRIBUTES',
-            ProjectionExpression='job_id'
+            ProjectionExpression='job_id, uploaded_at'
         )
-
         count = db_response['Count']
         jobs = db_response['Items']
-        jobs = [job['job_id']['S'] for job in jobs]
+        jobs = [{'job_id': job['job_id']['S'], 'uploaded_at': job['uploaded_at']['S']} for job in jobs]
         return templates.TemplateResponse("job_list.html", {"request": request, "jobs": jobs, "count": count})
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
 
 @app.get("/jobs/{job_id}")
-async def read_job(job_id: str):
+async def read_job(request: Request, job_id: str):
     try:
         db_response = dynamo.get_item(
             TableName=TABLE_NAME,
@@ -147,4 +146,5 @@ async def read_job(job_id: str):
         job_obj = db_response['Item']
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e)})
-    return JSONResponse(content={"result": "Complete", "job_id": job_id, "Object": job_obj})
+    # return JSONResponse(content={"result": "Complete", "job_id": job_id, "Object": job_obj})
+    return templates.TemplateResponse("job_detail.html", {"request": request, "job_id": job_id, "job_obj": job_obj})
