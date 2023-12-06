@@ -14,7 +14,12 @@
         <table class="table table-bordered table-hover">
             {% for key, value in job_obj.items() %}
                 <tr>
-                    <td>{{key}}</td><td>{{value.S}}</td>
+                    <td>{{key}}</td>
+                    {% if value.S.startswith('https') %}
+                    <td><a href="{{value.S}}">{{value.S}}</a></td>
+                    {% else %}
+                    <td>{{value.S}}</td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </table>
