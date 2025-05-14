@@ -2,6 +2,7 @@
 focusonyou-env/
 *.bkp
 *.zip
+node_modules
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
