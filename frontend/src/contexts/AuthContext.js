@@ -1,4 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { Amplify } from 'aws-amplify';
+import { signIn, signOut, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import api from '../services/api';
 
 export const AuthContext = createContext();
@@ -7,19 +9,36 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // 초기 로그인 상태 확인
-    api.get('/jobs')
-      .then(() => setUser({ username: 'me' }))
-      .catch(() => setUser(null));
+    // 세션 유지 확인
+    const checkAuth = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+        const session = await fetchAuthSession();
+        const token = session.tokens.idToken.toString();
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      } catch (error) {
+        setUser(null);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
-  const login = async (username, password) => {
-    await api.post('/login', { username, password });
-    setUser({ username });
+  const login = async (email, password) => {
+    const { isSignedIn, nextStep } = await signIn({ username: email, password });
+    if (isSignedIn) {
+      const currentUser = await getCurrentUser();
+      const session = await fetchAuthSession();
+      const token = session.tokens.idToken.toString();
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(currentUser);
+    }
   };
 
   const logout = async () => {
-    await api.get('/logout');
+    await signOut();
+    delete api.defaults.headers.common['Authorization'];
     setUser(null);
   };
 
