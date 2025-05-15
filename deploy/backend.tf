@@ -1,6 +1,6 @@
 terraform {
     cloud {
-        organization = "value"
+        organization = "infra-team"
         workspaces {
             name = "focusonyou"
         }
