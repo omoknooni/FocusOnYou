@@ -1,6 +1,6 @@
 # S3 bucket for storing videos and images
 resource "aws_s3_bucket" "media_bucket" {
-  bucket = "focusonyou-media-storage"
+  bucket = var.s3_bucket_name
   
   tags = {
     Name = "FocusOnYou Media Storage"
@@ -85,7 +85,7 @@ resource "aws_s3_bucket_notification" "media_bucket_noti" {
 
 # DynamoDB table
 resource "aws_dynamodb_table" "job_table" {
-  name           = "focusonyou-job-table"
+  name           = var.dynamodb_table_name
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "job_id"
   

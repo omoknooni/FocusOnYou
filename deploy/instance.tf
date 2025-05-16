@@ -1,8 +1,60 @@
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+  owners = [ "099720109477" ]
+}
+
 resource "aws_instance" "backend-api" {
-  ami           = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2 AMI (adjust for your region)
+  ami           = data.aws_ami.ubuntu.id
   instance_type = "t3a.small"
   subnet_id = tolist(data.aws_subnets.public.ids)[0]
   associate_public_ip_address = true
+  user_data = <<EOF
+    #!/bin/bash
+    apt-get update
+    echo "[*] Install Docker & Docker compose"
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    docker -v
+
+    curl -L https://github.com/docker/compose/releases/download/v2.36.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    docker-compose -v
+    echo "[*] Get Docker-compose.yml"
+    cat > docker-compose.yml << EOD
+    version: '3.8'
+
+    services:
+      fastapi:
+        image: ${var.docker_image_name}:${var.docker_image_tag}
+        ports:
+          - "8000:8000"
+        env_file:
+          - .env
+        restart: always
+    EOD
+
+    echo "[*] Get env for App"
+    cat > .env << EOE
+    AWS_REGION=${var.aws_region}
+    S3_BUCKET_NAME=${var.s3_bucket_name}
+    TABLE_NAME=${var.dynamodb_table_name}
+    COGNITO_REGION=${var.cognito_region}
+    COGNITO_USER_POOL_ID=${var.user_pool_id}
+    COGNITO_APP_CLIENT_ID=${var.app_client_id}
+    EOE
+
+    echo "[*] Start Backend Service"
+    docker-compose up -d
+
+  EOF
   tags = {
     Name = "FocusOnYou-Backend"
   }
