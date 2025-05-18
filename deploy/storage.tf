@@ -11,7 +11,7 @@ data "aws_s3_bucket" "static_site" {
     bucket = "focusonyou.omoknooni.me"
 }
 
-data "aws_s3_bucket_website_configuration" "static_site" {
+resource "aws_s3_bucket_website_configuration" "static_site" {
     bucket = data.aws_s3_bucket.static_site.id
 }
 

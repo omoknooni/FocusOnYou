@@ -27,10 +27,10 @@ resource "aws_lambda_function" "start_face_search" {
     runtime = "python3.13"
     environment {
         variables = {
-            FOCUSONYOU_BUCKET = aws_s3_bucket.media_bucket
+            FOCUSONYOU_BUCKET = aws_s3_bucket.media_bucket.id
             TABLE_NAME = aws_dynamodb_table.job_table.name
             SNS_TOPIC = aws_sns_topic.start_face_search.arn
-            ROLE_ARN = aws_iam_role.rekognition.arn
+            ROLE_ARN = aws_iam_role.rekognition_role.arn
         }
     }
 }
@@ -144,7 +144,7 @@ resource "aws_iam_policy" "focusonyou_s3" {
 
 resource "aws_iam_policy" "focusonyou_dynamodb" {
     name = "focusonyou_dynamodb"
-    policy = jsondecode({
+    policy = jsonencode({
         Version = "2012-10-17"
         Statement = [
             {
