@@ -1,70 +1,119 @@
-# Getting Started with Create React App
+# Focus On You - Frontend
+AWS Amplify와 Cognito를 활용한 인증 기능을 갖춘 React 기반 프론트엔드 애플리케이션입니다.  
+FocusOnYou의 메인 workload를 트리거하기 위한 파일업로드, Job의 실행현황, 결과물들을 확인하기 위함
+## 기능 개요
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+- AWS Cognito를 통한 사용자 인증 (로그인/로그아웃)
+- 인증된 사용자만 접근 가능한 보호된 라우트
+- 이미지와 비디오 업로드 기능
+- 작업 목록 조회 및 상세 정보 확인
 
-## Available Scripts
+## 프로젝트 구조
 
-In the project directory, you can run:
+```
+frontend/
+├── public/                # 정적 파일
+├── src/
+│   ├── components/        # 재사용 가능한 컴포넌트
+│   │   ├── NavBar.jsx     # 네비게이션 바
+│   │   ├── RequireAuth.jsx # 인증 필요 라우트 보호
+│   │   └── Logout.jsx     # 로그아웃 처리
+│   ├── contexts/
+│   │   └── AuthContext.js # 인증 상태 관리
+│   ├── pages/             # 페이지 컴포넌트
+│   │   ├── Home.jsx       # 홈 페이지
+│   │   ├── Login.jsx      # 로그인 페이지
+│   │   ├── Upload.jsx     # 파일 업로드 페이지
+│   │   ├── JobsList.jsx   # 작업 목록 페이지
+│   │   └── JobDetail.jsx  # 작업 상세 페이지
+│   ├── services/
+│   │   └── api.js         # API 호출 설정
+│   ├── App.js             # 라우트 설정
+│   └── index.js           # 앱 진입점
+└── .env                   # 환경 변수
+```
 
-### `yarn start`
+## 라우트 구성
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| 경로 | 컴포넌트 | 설명 | 인증 필요 |
+|------|---------|------|----------|
+| `/` | `Home` | 홈 페이지 | 아니오 |
+| `/login` | `Login` | 로그인 페이지 | 아니오 |
+| `/logout` | `Logout` | 로그아웃 처리 | 아니오 |
+| `/upload` | `Upload` | 파일 업로드 | 예 |
+| `/jobs` | `JobsList` | 작업 목록 | 예 |
+| `/jobs/:jobId` | `JobDetail` | 작업 상세 정보 | 예 |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 인증 로직
 
-### `yarn test`
+- `AuthContext.js`에서 AWS Amplify Auth API를 사용하여 인증 상태 관리
+- 로그인 시 JWT 토큰을 받아 API 요청 헤더에 포함
+- 인증이 필요한 라우트는 `RequireAuth` 컴포넌트로 보호
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 환경 설정
 
-### `yarn build`
+프로젝트 실행 전 `.env` 파일을 생성하고 다음 환경 변수를 설정해야 합니다:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+REACT_APP_COGNITO_REGION=       # Cognito 리전 (예: us-east-1)
+REACT_APP_COGNITO_USER_POOL_ID= # Cognito 사용자 풀 ID
+REACT_APP_COGNITO_APP_CLIENT_ID= # Cognito 앱 클라이언트 ID
+REACT_APP_COGNITO_DOMAIN=       # Cognito 호스팅 UI 도메인 (http 스킴 미포함)
+REACT_APP_REDIRECT_SIGN_IN=     # 로그인 후 리디렉션 URL
+REACT_APP_REDIRECT_SIGN_OUT=    # 로그아웃 후 리디렉션 URL
+REACT_APP_API_URL=              # 백엔드 API URL
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+`.env.example` 파일을 복사하여 `.env` 파일을 생성하고 적절한 값을 입력하세요.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 빌드 및 실행
 
-### `yarn eject`
+### 개발 환경
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+# 의존성 설치
+yarn install
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# 개발 서버 실행
+yarn start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 프로덕션 빌드
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+yarn build
 
-## Learn More
+# 빌드된 파일은 build/ 디렉토리에 생성됩니다
+# 이 파일들을 S3 버킷에 업로드하여 정적 웹사이트로 호스팅할 수 있습니다
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## AWS Amplify 구성
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+`index.js`에서 Amplify를 다음과 같이 구성합니다:
 
-### Code Splitting
+```javascript
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      region: process.env.REACT_APP_COGNITO_REGION,
+      userPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID,
+      userPoolClientId: process.env.REACT_APP_COGNITO_APP_CLIENT_ID,
+      loginWith: {
+        oauth: {
+          domain: process.env.REACT_APP_COGNITO_DOMAIN,
+          scopes: ['openid', 'email', 'profile'],
+          redirectSignIn: [process.env.REACT_APP_REDIRECT_SIGN_IN],
+          redirectSignOut: [process.env.REACT_APP_REDIRECT_SIGN_OUT],
+          responseType: 'code'
+        }
+      }
+    }
+  }
+});
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 백엔드 연동
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `yarn build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- 백엔드 API는 FastAPI로 구현되어 있으며, 인증된 사용자만 접근 가능
+- API 요청 시 JWT 토큰을 Authorization 헤더에 포함하여 전송
+- 파일 업로드는 S3 presigned URL을 통해 직접 S3에 업로드
