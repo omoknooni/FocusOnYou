@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import {
+  Container,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Alert,
+  LinearProgress,
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -6,58 +16,135 @@ export default function Upload() {
   const [faceName, setFaceName] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (!faceName || !imageFile || !videoFile) {
-      alert('모든 항목을 입력하세요');
+      setError('모든 항목을 입력해주세요.');
       return;
     }
-    // 1. Create job
-    const { data } = await api.post('/jobs/create', {
-      face_name: faceName,
-      image_filename: imageFile.name,
-      image_filetype: imageFile.type,
-      video_filename: videoFile.name,
-      video_filetype: videoFile.type,
-    });
 
-    // 2. Upload files
-    await api.put(data.presigned_urls.image.url, imageFile, {
-      headers: { 'Content-Type': imageFile.type },
-    });
-    await api.put(data.presigned_urls.video.url, videoFile, {
-      headers: { 'Content-Type': videoFile.type },
-    });
+    setLoading(true);
+    try {
+      // 1. Create job
+      const { data } = await api.post('/jobs/create', {
+        face_name: faceName,
+        image_filename: imageFile.name,
+        image_filetype: imageFile.type,
+        video_filename: videoFile.name,
+        video_filetype: videoFile.type,
+      });
 
-    // 3. Navigate to detail
-    navigate(`/jobs/${data.job_id}`);
+      // 2. Upload files
+      await api.put(data.presigned_urls.image.url, imageFile, {
+        headers: { 'Content-Type': imageFile.type },
+      });
+      await api.put(data.presigned_urls.video.url, videoFile, {
+        headers: { 'Content-Type': videoFile.type },
+      });
+
+      // 3. Navigate to detail
+      navigate(`/jobs/${data.job_id}`);
+    } catch (err) {
+      setError('업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="upload-form">
-      <h2>Upload Photo & Video</h2>
-      <input
-        type="text"
-        placeholder="Face Name"
-        value={faceName}
-        onChange={e => setFaceName(e.target.value)}
-        required
-      />
-      <input
-        type="file"
-        accept="image/*"
-        onChange={e => setImageFile(e.target.files[0])}
-        required
-      />
-      <input
-        type="file"
-        accept="video/*"
-        onChange={e => setVideoFile(e.target.files[0])}
-        required
-      />
-      <button type="submit">Start Job</button>
-    </form>
+    <Container component="main" maxWidth="sm">
+      <Box
+        sx={{
+          marginTop: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Typography component="h1" variant="h5">
+          파일 업로드
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
+          <TextField
+            fullWidth
+            required
+            id="faceName"
+            label="Face Name"
+            name="faceName"
+            value={faceName}
+            onChange={(e) => setFaceName(e.target.value)}
+          />
+
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid item xs={12} sm={6}>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+              >
+                사진 선택
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => setImageFile(e.target.files[0])}
+                />
+              </Button>
+              {imageFile && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  선택된 사진: {imageFile.name}
+                </Typography>
+              )}
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+              >
+                비디오 선택
+                <input
+                  type="file"
+                  accept="video/*"
+                  hidden
+                  onChange={(e) => setVideoFile(e.target.files[0])}
+                />
+              </Button>
+              {videoFile && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  선택된 비디오: {videoFile.name}
+                </Typography>
+              )}
+            </Grid>
+          </Grid>
+
+          {loading && <LinearProgress sx={{ mt: 3 }} />}
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+            disabled={loading}
+          >
+            {loading ? '업로드 중...' : 'Start Job'}
+          </Button>
+        </Box>
+      </Box>
+    </Container>
   );
 }

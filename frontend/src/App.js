@@ -8,6 +8,8 @@ import Upload from './pages/Upload';
 import JobsList from './pages/JobsList';
 import JobDetail from './pages/JobDetail';
 import { AuthProvider } from './contexts/AuthContext';
+import RequireAuth from './components/RequireAuth';
+import Logout from './components/Logout';
 import './App.css';
 
 // Material-UI 테마 생성
@@ -32,9 +34,32 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/upload" element={<Upload />} />
-            <Route path="/jobs" element={<JobsList />} />
-            <Route path="/jobs/:jobId" element={<JobDetail />} />
+            <Route path="/logout" element={<Logout />} />
+            {/* 인증된 사용자만 접근 가능 */}
+            <Route
+              path="/upload"
+              element={
+                <RequireAuth>
+                  <Upload />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/jobs"
+              element={
+                <RequireAuth>
+                  <JobsList />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/jobs/:jobId"
+              element={
+                <RequireAuth>
+                  <JobDetail />
+                </RequireAuth>
+              }
+            />
           </Routes>
         </Container>
       </AuthProvider>

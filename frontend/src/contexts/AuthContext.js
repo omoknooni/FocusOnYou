@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { Amplify } from 'aws-amplify';
 import { signIn, signOut, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import api from '../services/api';
 
@@ -7,6 +6,7 @@ export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // 세션 유지 확인
@@ -19,6 +19,8 @@ export function AuthProvider({ children }) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       } catch (error) {
         setUser(null);
+      } finally {
+        setLoading(false);
       }
     };
     

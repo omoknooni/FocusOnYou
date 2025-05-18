@@ -62,7 +62,8 @@ export default function NavBar() {
                 </Button>
                 <Button 
                   color="inherit" 
-                  onClick={handleLogout} 
+                  component={Link}
+                  to="/logout" 
                   startIcon={<LogoutIcon />}
                 >
                   Logout
