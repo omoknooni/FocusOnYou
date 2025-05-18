@@ -17,9 +17,14 @@ variable "aws_region" {
     default = "ap-northeast-3"
 }
 
-variable "s3_bucket_name" {
+variable "s3_media_bucket_name" {
     type = string
     description = "S3 bucket name to save media contents"
+}
+
+variable "s3_static_bucket_name" {
+    type = string
+    description = "S3 bucket name to static website"
 }
 
 variable "dynamodb_table_name" {
