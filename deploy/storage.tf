@@ -33,6 +33,30 @@ resource "aws_s3_bucket_cors_configuration" "media_bucket" {
     }
 }
 
+
+# media bucket은 cloudfront distribution으로만 접근가능하게
+resource "aws_s3_bucket_policy" "media_bucket" {
+    bucket = aws_s3_bucket.media_bucket.id
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Sid = "AllowCloudfront"
+                Effect = "Allow"
+                Principal = {
+                    Service = "cloudfront.amazonaws.com"
+                }
+                Action = [ "s3:GetObject" ]
+                Resource = [ "${aws_s3_bucket.media_bucket.arn}/*" ]
+                Condition = {
+                    StringLike = {
+                        "AWS:SourceArn" = ["${aws_cloudfront_distribution.media_cdn.arn}"]
+                    }
+                }
+            }
+        ]
+    })
+}
 # resource "aws_s3_bucket_website_configuration" "static_site" {
 #     bucket = aws_s3_bucket.static_site.id
 #     index_document {

@@ -59,3 +59,13 @@ variable "docker_image_tag" {
     description = "Docker image tag for backend api"
     default = "latest"
 }
+
+variable "slack_channel" {
+    type = string
+    description = "slack channel to send job complete msg"
+}
+
+variable "hook_url" {
+    type = string
+    description = "slack webhook url to send job complete msg"
+}

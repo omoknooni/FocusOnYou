@@ -51,6 +51,7 @@ resource "aws_lambda_function" "get_face_search" {
         variables = {
             TABLE_NAME = aws_dynamodb_table.job_table.name
             MC_ROLEARN = aws_iam_role.mediaconvert_role.arn
+            MC_QUEUE = aws_media_convert_queue.clip_stitch.arn
             OUTPUT_BUCKET = aws_s3_bucket.media_bucket.id
         }
     }
@@ -60,25 +61,6 @@ data "archive_file" "get_face_search" {
     type = "zip"
     source_file = "../lambda_function/get_face_search.py"
     output_path = "get_face_search.zip"
-}
-
-resource "aws_lambda_function" "job_result" {
-    filename = "job_result.zip"
-    function_name = "job_result"
-    role = aws_iam_role.job_result_role.arn
-    handler = "job_result.lambda_handler"
-    runtime = "python3.13"
-    environment {
-        variables = {
-            TABLE_NAME = aws_dynamodb_table.job_table.name
-        }
-    }
-}
-
-data "archive_file" "job_result" {
-    type = "zip"
-    source_file = "../lambda_function/job_result.py"
-    output_path = "job_result.zip"
 }
 
 # MediaConvert
@@ -95,28 +77,23 @@ resource "aws_iam_role" "mediaconvert_role" {
 
 # Role
 resource "aws_iam_role" "index_faces_role" {
-    name = "index_faces_role"
+    name = "focusonyou_index_faces_role"
     assume_role_policy = data.aws_iam_policy_document.lambda_policy.json
 }
 
 resource "aws_iam_role" "start_face_search_role" {
-    name = "start_face_search_role"
+    name = "focusonyou_start_face_search_role"
     assume_role_policy = data.aws_iam_policy_document.lambda_policy.json
 }
 
 resource "aws_iam_role" "get_face_search_role" {
-    name = "get_face_search_role"
+    name = "focusonyou_get_face_search_role"
     assume_role_policy = data.aws_iam_policy_document.lambda_policy.json
 }
 
 resource "aws_iam_role" "rekognition_role" {
     name = "focusonyou_rekognition_role"
     assume_role_policy = data.aws_iam_policy_document.rekognition_policy.json   
-}
-
-resource "aws_iam_role" "job_result_role" {
-    name = "job_result_role"
-    assume_role_policy = data.aws_iam_policy_document.lambda_policy.json
 }
 
 # Policy
@@ -354,11 +331,6 @@ resource "aws_iam_role_policy_attachment" "focusonyou_mediaconvert" {
     policy_arn = aws_iam_policy.mediaconvert.arn
 }
 
-# job_result
-resource "aws_iam_role_policy_attachment" "focusonyou_job_result_dynamodb" {
-    role = aws_iam_role.job_result_role.name
-    policy_arn = aws_iam_policy.focusonyou_dynamodb.arn
-}
 
 # SNS, SQS
 # Rekognition과 연동되는 SNS는 이름 접두사 제약이 있음
@@ -368,10 +340,6 @@ resource "aws_sns_topic" "index_faces" {
 
 resource "aws_sns_topic" "start_face_search" {
     name = "AmazonRekognition-start-face-search"
-}
-
-resource "aws_sns_topic" "transcode_job" {
-    name = "focusonyou-transcode-job"
 }
 
 resource "aws_sqs_queue" "start_face_search" {
@@ -386,12 +354,6 @@ resource "aws_lambda_event_source_mapping" "get_face_search_trigger" {
 }
 
 # SNS Subscription
-resource "aws_sns_topic_subscription" "job_result" {
-    topic_arn = aws_sns_topic.transcode_job.arn
-    protocol = "lambda"
-    endpoint = aws_lambda_function.job_result.arn
-}
-
 resource "aws_sns_topic_subscription" "get_face_search_sqs" {
     topic_arn = aws_sns_topic.start_face_search.arn
     protocol = "sqs"
