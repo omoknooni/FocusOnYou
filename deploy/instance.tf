@@ -44,7 +44,7 @@ resource "aws_instance" "backend-api" {
     echo "[*] Get env for App"
     cat > .env << EOE
     AWS_REGION=${var.aws_region}
-    S3_BUCKET_NAME=${var.s3_bucket_name}
+    S3_BUCKET_NAME=${var.s3_media_bucket_name}
     TABLE_NAME=${var.dynamodb_table_name}
     COGNITO_REGION=${var.cognito_region}
     COGNITO_USER_POOL_ID=${var.user_pool_id}
@@ -105,7 +105,7 @@ resource "aws_iam_instance_profile" "backend_profile" {
 
 resource "aws_iam_policy" "backend_api_policy" {
   name        = "media-processing-policy"
-  description = "Policy for Rekognition and MediaConvert operations"
+  description = "Policy for access dynamodb table and media bucket"
   
   policy = jsonencode({
     Version = "2012-10-17"
@@ -143,14 +143,3 @@ resource "aws_iam_role_policy_attachment" "media_processing_attachment" {
   role       = aws_iam_role.backend_role.name
   policy_arn = aws_iam_policy.backend_api_policy.arn
 }
-
-
-# MediaConvert endpoint resource
-# resource "aws_media_convert_queue" "main_queue" {
-#   name        = "focusonyou-main-queue"
-#   description = "Main queue for video processing"
-  
-#   tags = {
-#     Name = "FocusOnYou MediaConvert Queue"
-#   }
-# }

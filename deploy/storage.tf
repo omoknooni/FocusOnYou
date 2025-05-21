@@ -99,6 +99,11 @@ resource "aws_s3_object" "video_folder" {
     key = "videos/"
 }
 
+resource "aws_s3_object" "result_folder" {
+    bucket = aws_s3_bucket.media_bucket.id
+    key = "results/"
+}
+
 resource "aws_iam_role" "presigned_url_role" {
     name = "focusonyou_presigned_url_role"
 

@@ -50,6 +50,8 @@ resource "aws_lambda_function" "get_face_search" {
     environment {
         variables = {
             TABLE_NAME = aws_dynamodb_table.job_table.name
+            MC_ROLEARN = aws_iam_role.mediaconvert_role.arn
+            OUTPUT_BUCKET = aws_s3_bucket.media_bucket.id
         }
     }
 }
@@ -77,6 +79,18 @@ data "archive_file" "job_result" {
     type = "zip"
     source_file = "../lambda_function/job_result.py"
     output_path = "job_result.zip"
+}
+
+# MediaConvert
+resource "aws_media_convert_queue" "clip_stitch" {
+  name         = "focusonyou-clip-stitch-queue"
+  pricing_plan = "ON_DEMAND"
+  status       = "ACTIVE"
+}
+
+resource "aws_iam_role" "mediaconvert_role" {
+    name = "focusonyou_mediaconvert_role"
+    assume_role_policy = data.aws_iam_policy_document.lambda_policy.json
 }
 
 # Role
@@ -236,6 +250,24 @@ resource "aws_iam_policy" "focusonyou_rekognition" {
     })
 }
 
+resource "aws_iam_policy" "mediaconvert" {
+    name = "focusonyou_mediaconvert"
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Action = [
+                    "mediaconvert:CreateJob",
+                    "mediaconvert:GetJob",
+                    "mediaconvert:TagResource"
+                ]
+                Effect = "Allow"
+                Resource = "*"
+            }
+        ]
+    })
+}
+
 data "aws_iam_policy_document" "lambda_policy" {
     statement {
         principals {
@@ -314,6 +346,12 @@ resource "aws_iam_role_policy_attachment" "focusonyou_get_face_search_rekognitio
 resource "aws_iam_role_policy_attachment" "focusonyou_rekognition" {
     role = aws_iam_role.rekognition_role.name
     policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRekognitionServiceRole"
+}
+
+# mediaconvert
+resource "aws_iam_role_policy_attachment" "focusonyou_mediaconvert" {
+    role = aws_iam_role.mediaconvert_role.name
+    policy_arn = aws_iam_policy.mediaconvert.arn
 }
 
 # job_result
