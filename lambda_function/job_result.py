@@ -11,23 +11,29 @@ logger.setLevel(logging.INFO)
 
 dynamo = boto3.client('dynamodb')
 
-FOCUSONYOU_RESULT_BUCKET = os.environ['FOCUSONYOU_RESULT_BUCKET']
-BUCKET_REGION=os.environ['BUCKET_REGION']
+BUCKET_CDN_URL = os.environ['BUCKET_CDN_URL']
 TABLE_NAME = os.environ['TABLE_NAME']
 SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
 HOOK_URL = os.environ['HOOK_URL']
 
 def lambda_handler(event, context):
-    message = json.loads(event['Records'][0]['Sns']['Message'])
-    logger.info(f'Message : {message}')
+    # MediaConvert Job Complete status Event(EventBridge) 
+    # https://docs.aws.amazon.com/mediaconvert/latest/ug/ev_status_complete.html
+    detail = event['detail']
+    logger.info(f'Message : {detail}')
 
     # parse message
-    transjob_status = message.get('state')  # PROGRESSING|COMPLETED|WARNING|ERROR
-    transjob_id = message.get('jobId')
-    job_id = message.get('input').get('key').split('/')[1]
-    output_filename = message.get('outputs')[0].get('key')
+    transjob_status = detail['status']
+    transjob_id = detail['jobId']
+    job_id = detail['userMetadata']['job_id']
+    output_filepath = detail['outputGroupDetails'][0]['outputDetails'][0]['outputFilePaths'][0]
+    _, _, bucket, *key_parts = output_filepath.split('/')
+    key = '/'.join(key_parts)
 
-    transcoded_video_url = f"https://{FOCUSONYOU_RESULT_BUCKET}.s3.{BUCKET_REGION}.amazonaws.com/{output_filename}"
+
+    # 최종 사용자가 결과물에 접근할 수 있도록 지정정
+    # transcoded_video_url = f"https://{FOCUSONYOU_RESULT_BUCKET}.s3.{BUCKET_REGION}.amazonaws.com/{output_filename}"
+    transcoded_video_url = f"https://{BUCKET_CDN_URL}/{key}"
 
     if transjob_status == 'COMPLETED':
         dynamo.update_item(
@@ -67,6 +73,5 @@ def lambda_handler(event, context):
             }
         )
         logger.error(f'Job {transjob_id} is failed')
-        logger.error(f'Error message : {message}')
     else:
         logger.info(f'Job {transjob_id} is {transjob_status}')

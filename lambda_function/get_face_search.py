@@ -12,12 +12,21 @@ dynamo = boto3.client('dynamodb')
 
 TABLE_NAME = os.environ['TABLE_NAME']
 MC_ROLEARN = os.environ['MC_ROLE_ARN']
+MC_QUEUE = os.environ['MC_QUEUE']
 OUTPUT_BUCKET = os.environ['OUTPUT_BUCKET']
 
 # MediaConvert
 mc = boto3.client('mediaconvert')
 endpoints = mc.describe_endpoints()['Endpoints'][0]['Url']
 mc_client = boto3.client('mediaconvert', endpoint_url=endpoints)
+
+def ms_to_timecode(ms):
+    total_seconds = ms // 1000
+    h = total_seconds // 3600
+    m = (total_seconds % 3600) // 60
+    s = total_seconds % 60
+    ms_remainder = ms % 1000
+    return f"{h:02d}:{m:02d}:{s:02d}.{ms_remainder:03d}"
 
 def lambda_handler(event, context):
     # get message from sqs queue
@@ -83,19 +92,22 @@ def lambda_handler(event, context):
 
     # convert face search timestamp list to scene level
     scene_timestamp = []
-    start = 0
-    for i in range(len(detected_timestamp)):
-        if start == 0:
-            start = end = detected_timestamp[i]
+    start = end = None
+
+    for ts in detected_timestamp:
+        if start is None:
+            start = end = ts
+        elif ts - end > 1000:
+            # 이전 장면 종료 판단
+            if end - start >= 1000:
+                scene_timestamp.append((start, end))
+            # 새로운 장면 시작
+            start = end = ts
         else:
-            if detected_timestamp[i] - end > 1000:
-                if end - start >= 1000:
-                    scene_timestamp.append((start, end))
-                start = 0
-            else:
-                end = detected_timestamp[i]
-    
-    if start != 0 and end - start >= 1000:
+            end = ts
+
+    # 마지막 장면 체크
+    if start is not None and end - start >= 1000:
         scene_timestamp.append((start, end))
     
 
@@ -104,14 +116,14 @@ def lambda_handler(event, context):
         input_clippings = []
         for start_ms, end_ms in scene_timestamp:
             input_clippings.append({
-                'StartTimecode': f"{start_ms/1000:.3f}",
-                'EndTimecode':   f"{end_ms/1000:.3f}"
+                'StartTimecode': ms_to_timecode(start_ms),
+                'EndTimecode':   ms_to_timecode(end_ms)
             })
 
         job_settings = {
             'Inputs': [
                 {
-                    'FileInputs': f's3://{OUTPUT_BUCKET}/videos',
+                    'FileInputs': f's3://{OUTPUT_BUCKET}/videos/{video_name}',
                     'InputClippings': input_clippings
                 }
             ],
@@ -146,7 +158,7 @@ def lambda_handler(event, context):
                                 'AntiAlias': 'ENABLED',
                                 'TimecodeSource': 'EMBEDDED',
                                 'Level': 3,
-                                'NameModifier': f"{face_name}"
+                                'NameModifier': f"{face_name}_{job_id}"
                             },
                             'AudioDescriptions': [
                                 {
@@ -173,7 +185,7 @@ def lambda_handler(event, context):
                                 }
                             },
                             'Extension': 'mp4',
-                            'NameModifier': f"{face_name}"
+                            'NameModifier': f"{face_name}_{job_id}"
                         }
                     ]
                 }
@@ -184,7 +196,8 @@ def lambda_handler(event, context):
         mc_job = mc_client.create_job(
             Role=MC_ROLEARN,
             Settings=job_settings,
-            PipelineId=pipeline_id,
+            Queue=MC_QUEUE,
+            statusUpdateInterval='SECONDS_20',
             UserMetadata={
                 'job_id': job_id
             }
@@ -214,6 +227,6 @@ def lambda_handler(event, context):
 
     return {
         "job_id": job_id,
-        "transjob_id": transcoder_job,
+        "transjob_id": transjob_id,
         "transjob_status": transjob_status
     }
