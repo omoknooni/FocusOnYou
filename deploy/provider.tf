@@ -69,3 +69,8 @@ variable "hook_url" {
     type = string
     description = "slack webhook url to send job complete msg"
 }
+
+variable "ssh_public_key" {
+    type = string
+    description = "public key for access instance"
+}

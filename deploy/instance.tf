@@ -16,6 +16,10 @@ resource "aws_instance" "backend-api" {
   instance_type = "t3a.small"
   subnet_id = tolist(data.aws_subnets.public.ids)[0]
   associate_public_ip_address = true
+
+  vpc_security_group_ids = [ aws_security_group.backend_sg.id ]
+  key_name = aws_key_pair.backend_key.key_name
+
   user_data = <<EOF
 #!/bin/bash
 apt-get update
@@ -141,4 +145,44 @@ resource "aws_iam_policy" "backend_api_policy" {
 resource "aws_iam_role_policy_attachment" "media_processing_attachment" {
   role       = aws_iam_role.backend_role.name
   policy_arn = aws_iam_policy.backend_api_policy.arn
+}
+
+# SSH 키 페어 생성
+resource "aws_key_pair" "backend_key" {
+  key_name   = "focusonyou-backend-key"
+  public_key = var.ssh_public_key
+}
+
+# 보안 그룹 생성
+resource "aws_security_group" "backend_sg" {
+  name        = "focusonyou-backend-sg"
+  description = "Security group for backend API"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "SSH access"
+  }
+
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "API access"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "FocusOnYou-Backend-SG"
+  }
 }
