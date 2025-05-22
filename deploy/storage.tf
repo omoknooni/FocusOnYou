@@ -9,7 +9,7 @@ resource "aws_s3_bucket" "media_bucket" {
 }
 
 # S3 bucket for static website hosting
-resource "aws_s3_bucket" "static_site" {
+data "aws_s3_bucket" "static_site" {
     bucket = var.s3_static_bucket_name
 }
 
@@ -21,9 +21,9 @@ resource "aws_s3_bucket_cors_configuration" "media_bucket" {
         allowed_headers = [ "*" ]
         allowed_methods = [ "GET", "POST", "PUT" ]
         allowed_origins = [
-            "http://${aws_s3_bucket.static_site.bucket}",
-            "https://${aws_s3_bucket.static_site.bucket}",
-            "http://${aws_s3_bucket.static_site.bucket}.s3-website.${var.aws_region}.amazonaws.com"
+            "http://${data.aws_s3_bucket.static_site.bucket}",
+            "https://${data.aws_s3_bucket.static_site.bucket}",
+            "http://${data.aws_s3_bucket.static_site.bucket}.s3-website.${var.aws_region}.amazonaws.com"
         ]
     }
 }
