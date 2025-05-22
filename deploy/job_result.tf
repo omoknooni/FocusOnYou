@@ -48,11 +48,11 @@ resource "aws_cloudwatch_event_target" "lambda_target" {
 }
 
 # Lambda가 Eventbridge로부터 호출 허용
-resource "aws_lambda_permission" "allow_sns" {
+resource "aws_lambda_permission" "allow_eventbridge" {
   statement_id  = "AllowSNSInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.job_result.function_name
-  principal     = "sns.amazonaws.com"
+  principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.mc_job_complete.arn
 }
 

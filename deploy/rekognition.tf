@@ -319,6 +319,11 @@ resource "aws_iam_role_policy_attachment" "focusonyou_get_face_search_rekognitio
     policy_arn = aws_iam_policy.focusonyou_rekognition.arn
 }
 
+resource "aws_iam_role_policy_attachment" "focusonyou_get_face_search_mediaconvert" {
+    role = aws_iam_role.get_face_search_role.name
+    policy_arn = aws_iam_policy.mediaconvert.arn
+}
+
 # rekognition
 resource "aws_iam_role_policy_attachment" "focusonyou_rekognition" {
     role = aws_iam_role.rekognition_role.name
@@ -346,6 +351,13 @@ resource "aws_sqs_queue" "start_face_search" {
     name = "AmazonRekognition-start-face-search"
 }
 
+resource "aws_lambda_permission" "allow_sns_start_face_search" {
+    statement_id = "AllowExecutionFromSNS"
+    action = "lambda:InvokeFunction"
+    function_name = aws_lambda_function.start_face_search.function_name
+    principal = "sns.amazonaws.com"
+    source_arn = aws_sns_topic.index_faces.arn
+}
 
 # Lambda Event Source Mapping
 resource "aws_lambda_event_source_mapping" "get_face_search_trigger" {

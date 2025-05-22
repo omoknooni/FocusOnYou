@@ -21,6 +21,7 @@ resource "aws_cloudfront_distribution" "media_bucket_cdn" {
       viewer_protocol_policy = "redirect-to-https"
       allowed_methods = ["GET", "HEAD"]
       cached_methods = ["GET", "HEAD"]
+      cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"  // Managed-CachingOptimized
     }
 
     restrictions {
