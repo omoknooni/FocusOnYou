@@ -9,13 +9,8 @@ resource "aws_s3_bucket" "media_bucket" {
 }
 
 # S3 bucket for static website hosting
-resource "aws_s3_bucket" "static_site" {
+data "aws_s3_bucket" "static_site" {
     bucket = var.s3_static_bucket_name
-    force_destroy = true
-
-    tags = {
-      Name = "FocusOnYou Static Site"
-    }
 }
 
 # CORS for media bucket (for uploading media)
@@ -26,9 +21,9 @@ resource "aws_s3_bucket_cors_configuration" "media_bucket" {
         allowed_headers = [ "*" ]
         allowed_methods = [ "GET", "POST", "PUT" ]
         allowed_origins = [
-            "http://${aws_s3_bucket.static_site.bucket}",
-            "https://${aws_s3_bucket.static_site.bucket}",
-            "http://${aws_s3_bucket.static_site.bucket}.s3-website.${var.aws_region}.amazonaws.com"
+            "http://${data.aws_s3_bucket.static_site.bucket}",
+            "https://${data.aws_s3_bucket.static_site.bucket}",
+            "http://${data.aws_s3_bucket.static_site.bucket}.s3-website.${var.aws_region}.amazonaws.com"
         ]
     }
 }
@@ -112,7 +107,7 @@ resource "aws_iam_policy" "presigned_url_policy" {
 resource "aws_lambda_permission" "allow_bucket" {
     statement_id = "AllowExecutionFromS3Bucket"
     action = "lambda:InvokeFunction"
-    function_name = aws_lambda_function.index_faces.arn
+    function_name = aws_lambda_function.index_faces.function_name
     principal = "s3.amazonaws.com"
     source_arn = aws_s3_bucket.media_bucket.arn
 }
@@ -125,6 +120,7 @@ resource "aws_s3_bucket_notification" "media_bucket_noti" {
         events = [ "s3:ObjectCreated:Put" ]
         filter_prefix = "images/"
     }
+    depends_on = [ aws_lambda_permission.allow_bucket ]
 }
 
 # DynamoDB table
