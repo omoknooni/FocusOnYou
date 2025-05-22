@@ -9,6 +9,7 @@ resource "aws_lambda_function" "job_result" {
             TABLE_NAME = aws_dynamodb_table.job_table.name
             SLACK_CHANNEL = var.slack_channel
             HOOK_URL = var.hook_url
+            BUCKET_CDN_URL = aws_cloudfront_distribution.media_bucket_cdn.domain_name
         }
     }
 }

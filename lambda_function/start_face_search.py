@@ -41,7 +41,7 @@ def lambda_handler(event, context):
             Video={
                 'S3Object': {
                     'Bucket': FOCUSONYOU_BUCKET,
-                    'Name': 'target-video/' + job_id+'/'+video_name
+                    'Name': 'videos/' + job_id+'/'+video_name
                 }
             },
             CollectionId=job_id,

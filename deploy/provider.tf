@@ -14,7 +14,7 @@ provider "aws" {
 variable "aws_region" {
     type = string
     description = "AWS region to use"
-    default = "ap-northeast-3"
+    default = "us-east-2"
 }
 
 variable "s3_media_bucket_name" {
