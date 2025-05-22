@@ -8,7 +8,9 @@ from botocore.exceptions import ClientError
 from fastapi import FastAPI, HTTPException, Depends, Request, Response, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from jose import jwt, JWTError, jwk, jwks_client
+# from jose import jwt, JWTError, jwk, jwks_client
+import jwt
+from jwt import PyJWKClient, ExpiredSignatureError, InvalidTokenError
 
 # 환경 변수 로드
 from dotenv import load_dotenv
@@ -37,7 +39,7 @@ APP_CLIENT_ID = os.getenv("COGNITO_APP_CLIENT_ID", "")
 
 # Cognito JWKS URL
 JWKS_URL = f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
-jwks_client = jwks_client.JWKSClient(JWKS_URL)
+jwks_client = PyJWKClient(JWKS_URL)
 security = HTTPBearer()
 
 # 요청/응답 모델
@@ -67,7 +69,9 @@ def verify_cognito_token(token: str) -> dict:
             audience=APP_CLIENT_ID,
         )
         return claims
-    except JWTError as e:
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+    except InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
 # 현재 사용자, 공개키를 가져와 토큰 검증
