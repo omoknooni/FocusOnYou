@@ -31,6 +31,11 @@ docker -v
 curl -L https://github.com/docker/compose/releases/download/v2.36.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 docker-compose -v
+
+echo "[*] Create app dir"
+mkdir -p /app/backend
+cd /app/backend
+
 echo "[*] Get Docker-compose.yml"
 cat > docker-compose.yml << EOD
 version: '3.8'
@@ -56,7 +61,7 @@ COGNITO_APP_CLIENT_ID=${var.app_client_id}
 EOE
 
 echo "[*] Start Backend Service"
-docker-compose up -d
+docker-compose -p focusonyou up -d
 EOF
   tags = {
     Name = "FocusOnYou-Backend"
