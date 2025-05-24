@@ -8,7 +8,7 @@ locals {
 
 resource "aws_lambda_function" "create_job" {
   function_name = "focusonyou-api-createjob"
-  filename = "create_job.zip"
+  filename = "${path.module}/create_job.zip"
   handler = "create_job.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
@@ -24,13 +24,13 @@ resource "aws_lambda_function" "create_job" {
 
 data "archive_file" "create_job" {
   type = "zip"
-  source_file = "../../lambda_function/create_job.py"
-  output_path = "create_job.zip"
+  source_file = "${path.module}/../../lambda_function/create_job.py"
+  output_path = "${path.module}/create_job.zip"
 }
 
 resource "aws_lambda_function" "get_job" {
   function_name = "focusonyou-api-getjob"
-  filename = "get_job.zip"
+  filename = "${path.module}/get_job.zip"
   handler = "get_job.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
@@ -45,13 +45,13 @@ resource "aws_lambda_function" "get_job" {
 
 data "archive_file" "get_job" {
   type = "zip"
-  source_file = "../../lambda_function/get_job.py"
-  output_path = "get_job.zip"
+  source_file = "${path.module}/../../lambda_function/get_job.py"
+  output_path = "${path.module}/get_job.zip"
 }
 
 resource "aws_lambda_function" "list_jobs" {
   function_name = "focusonyou-api-listjobs"
-  filename = "list_jobs.zip"
+  filename = "${path.module}/list_jobs.zip"
   handler = "list_jobs.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
@@ -66,13 +66,13 @@ resource "aws_lambda_function" "list_jobs" {
 
 data "archive_file" "list_jobs" {
   type = "zip"
-  source_file = "../../lambda_function/list_jobs.py"
-  output_path = "list_jobs.zip"
+  source_file = "${path.module}/../../lambda_function/list_jobs.py"
+  output_path = "${path.module}/list_jobs.zip"
 }
 
 resource "aws_lambda_function" "get_user" {
   function_name = "focusonyou-api-getuser"
-  filename = "get_user.zip"
+  filename = "${path.module}/get_user.zip"
   handler = "get_user.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
@@ -80,8 +80,8 @@ resource "aws_lambda_function" "get_user" {
 
 data "archive_file" "get_user" {
   type = "zip"
-  source_file = "../../lambda_function/get_user.py"
-  output_path = "get_user.zip"
+  source_file = "${path.module}/../../lambda_function/get_user.py"
+  output_path = "${path.module}/get_user.zip"
 }
 
 ### Lambda Role
