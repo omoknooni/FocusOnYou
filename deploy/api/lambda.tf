@@ -1,6 +1,8 @@
+data "aws_caller_identity" "current" {}
+
 locals {
   s3_bucket_arn = "arn:aws:s3:::${var.s3_media_bucket_name}"
-  dynamodb_table_arn = "arn:aws:dynamodb:${var.aws_region}:*:table/${var.dynamodb_table_name}"
+  dynamodb_table_arn = "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.dynamodb_table_name}"
 
 }
 
@@ -10,6 +12,7 @@ resource "aws_lambda_function" "create_job" {
   handler = "create_job.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
+  timeout = 10
   environment {
     variables = {
       AWS_REGION = var.aws_region
@@ -21,7 +24,7 @@ resource "aws_lambda_function" "create_job" {
 
 data "archive_file" "create_job" {
   type = "zip"
-  source_file = "../../lambda_functions/create_job.py"
+  source_file = "../../lambda_function/create_job.py"
   output_path = "create_job.zip"
 }
 
@@ -31,6 +34,7 @@ resource "aws_lambda_function" "get_job" {
   handler = "get_job.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
+  timeout = 5
   environment {
     variables = {
       AWS_REGION = var.aws_region
@@ -41,7 +45,7 @@ resource "aws_lambda_function" "get_job" {
 
 data "archive_file" "get_job" {
   type = "zip"
-  source_file = "../../lambda_functions/get_job.py"
+  source_file = "../../lambda_function/get_job.py"
   output_path = "get_job.zip"
 }
 
@@ -51,6 +55,7 @@ resource "aws_lambda_function" "list_jobs" {
   handler = "list_jobs.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
+  timeout = 10
   environment {
     variables = {
       AWS_REGION = var.aws_region
@@ -61,7 +66,7 @@ resource "aws_lambda_function" "list_jobs" {
 
 data "archive_file" "list_jobs" {
   type = "zip"
-  source_file = "../../lambda_functions/list_jobs.py"
+  source_file = "../../lambda_function/list_jobs.py"
   output_path = "list_jobs.zip"
 }
 
@@ -75,7 +80,7 @@ resource "aws_lambda_function" "get_user" {
 
 data "archive_file" "get_user" {
   type = "zip"
-  source_file = "../../lambda_functions/get_user.py"
+  source_file = "../../lambda_function/get_user.py"
   output_path = "get_user.zip"
 }
 

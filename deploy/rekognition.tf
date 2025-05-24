@@ -5,6 +5,7 @@ resource "aws_lambda_function" "index_faces" {
     role = aws_iam_role.index_faces_role.arn
     handler = "index_faces.lambda_handler"
     runtime = "python3.13"
+    timeout = 5
     environment {
         variables = {
             SNS_TOPIC = aws_sns_topic.index_faces.arn
@@ -25,6 +26,7 @@ resource "aws_lambda_function" "start_face_search" {
     role = aws_iam_role.start_face_search_role.arn
     handler = "start_face_search.lambda_handler"
     runtime = "python3.13"
+    timeout = 10
     environment {
         variables = {
             FOCUSONYOU_BUCKET = aws_s3_bucket.media_bucket.id
@@ -47,6 +49,7 @@ resource "aws_lambda_function" "get_face_search" {
     role = aws_iam_role.get_face_search_role.arn
     handler = "get_face_search.lambda_handler"
     runtime = "python3.13"
+    timeout = 10
     environment {
         variables = {
             TABLE_NAME = aws_dynamodb_table.job_table.name
@@ -109,7 +112,7 @@ resource "aws_iam_policy" "focusonyou_s3" {
                 ]
                 Effect = "Allow"
                 Resource = [
-                    aws_s3_bucket.media_bucket.arn,
+                    "${aws_s3_bucket.media_bucket.arn}",
                     "${aws_s3_bucket.media_bucket.arn}/*"
                 ]
             },
@@ -119,7 +122,7 @@ resource "aws_iam_policy" "focusonyou_s3" {
                 ]
                 Effect = "Allow"
                 Resource = [
-                    aws_s3_bucket.media_bucket.arn
+                    "${aws_s3_bucket.media_bucket.arn}"
                 ]
             },
             {

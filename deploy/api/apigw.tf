@@ -46,20 +46,13 @@ resource "aws_apigatewayv2_route" "lambda" {
   authorizer_id = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 
-# Staging
-resource "aws_apigatewayv2_stage" "staging" {
-  api_id = aws_apigatewayv2_api.http_api.id
-  name = "$default"
-  auto_deploy = true
-}
 
 # Permission for APIGW to Invoke Lambda
 resource "aws_lambda_permission" "apigw" {
   for_each = local.lambdas
 
-  statement_id = "Allow${replace(each.key, "/","_")}"
   action = "lambda:InvokeFunction"
   principal = "apigateway.amazonaws.com"
   function_name = each.value.function_name
-  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/*/${split(" ",each.key)[0]}/${split(" ",each.key)[1]}"
+  source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/*"
 }
