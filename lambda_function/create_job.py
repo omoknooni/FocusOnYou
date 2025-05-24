@@ -4,12 +4,12 @@ import os, json, uuid
 from datetime import datetime
 import boto3
 
-AWS_REGION     = os.getenv("AWS_REGION")
+REGION     = os.getenv("REGION")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 TABLE_NAME     = os.getenv("TABLE_NAME")
 
-s3     = boto3.client("s3", region_name=AWS_REGION)
-dynamo = boto3.client("dynamodb", region_name=AWS_REGION)
+s3     = boto3.client("s3", region_name=REGION)
+dynamo = boto3.client("dynamodb", region_name=REGION)
 
 def lambda_handler(event, context):
     # 1) 검증된 JWT 클레임

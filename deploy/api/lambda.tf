@@ -15,7 +15,7 @@ resource "aws_lambda_function" "create_job" {
   timeout = 10
   environment {
     variables = {
-      AWS_REGION = var.aws_region
+      REGION = var.aws_region
       S3_BUCKET_NAME = var.s3_media_bucket_name
       TABLE_NAME = var.dynamodb_table_name
     }
@@ -37,7 +37,7 @@ resource "aws_lambda_function" "get_job" {
   timeout = 5
   environment {
     variables = {
-      AWS_REGION = var.aws_region
+      REGION = var.aws_region
       TABLE_NAME = var.dynamodb_table_name
     }
   }
@@ -58,7 +58,7 @@ resource "aws_lambda_function" "list_jobs" {
   timeout = 10
   environment {
     variables = {
-      AWS_REGION = var.aws_region
+      REGION = var.aws_region
       TABLE_NAME = var.dynamodb_table_name
     }
   }

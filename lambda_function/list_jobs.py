@@ -2,10 +2,10 @@ import boto3
 import json, os, uuid
 from datetime import datetime
 
-AWS_REGION = os.getenv("AWS_REGION")
+REGION = os.getenv("REGION")
 TABLE_NAME = os.getenv("TABLE_NAME")
 
-dynamo = boto3.client("dynamodb", region_name=AWS_REGION)
+dynamo = boto3.client("dynamodb", region_name=REGION)
 
 def lambda_handler(event, context):
     claims = event["requestContext"]["authorizer"]["jwt"]["claims"]
