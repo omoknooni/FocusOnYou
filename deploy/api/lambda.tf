@@ -1,3 +1,9 @@
+locals {
+  s3_bucket_arn = "arn:aws:s3:::${var.s3_media_bucket_name}"
+  dynamodb_table_arn = "arn:aws:dynamodb:${var.aws_region}:*:table/${var.dynamodb_table_name}"
+
+}
+
 resource "aws_lambda_function" "create_job" {
   function_name = "focusonyou-api-createjob"
   filename = "create_job.zip"
@@ -108,8 +114,8 @@ resource "aws_iam_policy" "backend_api_policy" {
         ]
         Effect   = "Allow"
         Resource = [
-          "${aws_s3_bucket.media_bucket.arn}",
-          "${aws_s3_bucket.media_bucket.arn}/*"
+          "${local.s3_bucket_arn}",
+          "${local.s3_bucket_arn}/*"
         ]
       },
       {
@@ -122,7 +128,7 @@ resource "aws_iam_policy" "backend_api_policy" {
           "dynamodb:Scan",
         ]
         Effect   = "Allow"
-        Resource = "${aws_dynamodb_table.job_table.arn}"
+        Resource = "${local.dynamodb_table_arn}"
       }
     ]
   })
