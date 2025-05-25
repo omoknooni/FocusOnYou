@@ -35,7 +35,7 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-# Lambda route, 앞서 생성한 authorizer 연결
+# Lambda route, 앞서 생성한 authorizer 연결, authorization_type과 authorizer_id를 모두 지정해줘야함
 resource "aws_apigatewayv2_route" "lambda" {
   for_each = local.lambdas
 
@@ -43,6 +43,7 @@ resource "aws_apigatewayv2_route" "lambda" {
   route_key = each.key
   target = "integrations/${aws_apigatewayv2_integration.lambda[each.key].id}"
 
+  authorization_type = "JWT"
   authorizer_id = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 

@@ -49,7 +49,7 @@ resource "aws_lambda_function" "get_face_search" {
     role = aws_iam_role.get_face_search_role.arn
     handler = "get_face_search.lambda_handler"
     runtime = "python3.13"
-    timeout = 10
+    timeout = 20
     environment {
         variables = {
             TABLE_NAME = aws_dynamodb_table.job_table.name
@@ -337,6 +337,11 @@ resource "aws_iam_role_policy_attachment" "focusonyou_rekognition" {
 resource "aws_iam_role_policy_attachment" "focusonyou_mediaconvert" {
     role = aws_iam_role.mediaconvert_role.name
     policy_arn = aws_iam_policy.mediaconvert.arn
+}
+
+resource "aws_iam_role_policy_attachment" "focusonyou_mediaconvert_s3" {
+    role = aws_iam_role.mediaconvert_role.name
+    policy_arn = aws_iam_policy.focusonyou_s3.arn
 }
 
 
