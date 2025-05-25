@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import axios from 'axios';
 
 export default function Upload() {
   const [faceName, setFaceName] = useState('');
@@ -29,6 +30,13 @@ export default function Upload() {
       return;
     }
 
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+    const MAX_VIDEO_SIZE = 300 * 1024 * 1024;
+    if (imageFile.size > MAX_IMAGE_SIZE || videoFile.size > MAX_VIDEO_SIZE) {
+      setError('파일 크기는 300MB를 초과할 수 없습니다.');
+      return;
+    }
+
     setLoading(true);
     try {
       // 1. Create job
@@ -41,11 +49,29 @@ export default function Upload() {
       });
 
       // 2. Upload files
-      await api.put(data.presigned_urls.image.url, imageFile, {
-        headers: { 'Content-Type': imageFile.type },
+      // await api.put(data.presigned_urls.image.url, imageFile, {
+      //   headers: { 'Content-Type': imageFile.type },
+      // });
+      const formData = new FormData();
+      Object.entries(data.presigned_data.image.fields).forEach(([key, value]) => {
+        formData.append(key, value);
       });
-      await api.put(data.presigned_urls.video.url, videoFile, {
-        headers: { 'Content-Type': videoFile.type },
+      formData.append('file', imageFile);
+
+      await axios.post(data.presigned_urls.image.url, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      // await api.put(data.presigned_urls.video.url, videoFile, {
+      //   headers: { 'Content-Type': videoFile.type },
+      // });
+      const videoFormData = new FormData();
+      Object.entries(data.presigned_data.video.fields).forEach(([key, value]) => {
+        videoFormData.append(key, value);
+      });
+
+      await axios.post(data.presigned_urls.video.url, videoFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       // 3. Navigate to detail

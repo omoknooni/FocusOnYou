@@ -8,6 +8,10 @@ REGION     = os.getenv("REGION")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 TABLE_NAME     = os.getenv("TABLE_NAME")
 
+# 미디어 업로드 용량 제한
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_VIDEO_SIZE = 300 * 1024 * 1024  # 300MB
+
 s3     = boto3.client("s3", region_name=REGION)
 dynamo = boto3.client("dynamodb", region_name=REGION)
 
@@ -31,14 +35,24 @@ def lambda_handler(event, context):
 
     # 4) presigned URL 생성
     try:
-        image_url = s3.generate_presigned_url(
-            "put_object",
-            Params={"Bucket": S3_BUCKET_NAME, "Key": image_key, "ContentType": image_type},
+        image_post = s3.generate_presigned_post(
+            Bucket=S3_BUCKET_NAME,
+            Key=image_key,
+            Fields={"Content-Type": image_type},
+            Conditions=[
+                ["content-length-range", 1, MAX_IMAGE_SIZE],
+                ["starts-with", "$Content-Type", image_type],
+            ],
             ExpiresIn=3600,
         )
-        video_url = s3.generate_presigned_url(
-            "put_object",
-            Params={"Bucket": S3_BUCKET_NAME, "Key": video_key, "ContentType": video_type},
+        video_post = s3.generate_presigned_post(
+            Bucket=S3_BUCKET_NAME,
+            Key=video_key,
+            Fields={"Content-Type": video_type},
+            Conditions=[
+                ["content-length-range", 1, MAX_VIDEO_SIZE],
+                ["starts-with", "$Content-Type", video_type],
+            ],
             ExpiresIn=3600,
         )
     except Exception as e:
@@ -69,9 +83,9 @@ def lambda_handler(event, context):
     # 6) 응답
     resp = {
         "job_id": job_id,
-        "presigned_urls": {
-            "image": {"url": image_url, "key": image_key},
-            "video": {"url": video_url, "key": video_key},
+        "presigned_data": {
+            "image": {"url": image_post["url"], "fields": image_post["fields"], "key": image_key},
+            "video": {"url": video_post["url"], "fields": video_post["fields"], "key": video_key},
         },
     }
     return {
