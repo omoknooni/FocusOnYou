@@ -55,6 +55,13 @@ resource "aws_apigatewayv2_route" "lambda" {
   authorizer_id = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 
+# 스테이지 생성
+resource "aws_apigatewayv2_stage" "name" {
+  api_id = aws_apigatewayv2_api.http_api.id
+  name = "$default"
+  auto_deploy = true
+}
+
 
 # Permission for APIGW to Invoke Lambda
 resource "aws_lambda_permission" "apigw" {
@@ -64,4 +71,36 @@ resource "aws_lambda_permission" "apigw" {
   principal = "apigateway.amazonaws.com"
   function_name = each.value.function_name
   source_arn = "${aws_apigatewayv2_api.http_api.execution_arn}/*"
+}
+
+# OPTIONS for CORS (route)
+resource "aws_apigatewayv2_route" "cors" {
+  for_each = local.lambdas
+
+  api_id = aws_apigatewayv2_api.http_api.id
+  route_key = "OPTIONS ${each.key}"
+  target = "integrations/${aws_apigatewayv2_integration.lambda[each.key].id}"
+}
+
+# OPTIONS for CORS (integration)
+resource "aws_apigatewayv2_integration" "cors" {
+  api_id = aws_apigatewayv2_api.http_api.id
+  integration_type = "MOCK"
+  template_selection_expression = "$request.method"
+
+  integration_method = "OPTIONS"
+  passthrough_behavior = "WHEN_NO_MATCH"
+  request_templates = {
+    "OPTIONS" = "{ \"statusCode\": 200 }"
+  }
+}
+
+# OPTIONS for CORS (response)
+resource "aws_apigatewayv2_integration_response" "cors" {
+  api_id = aws_apigatewayv2_api.http_api.id
+  integration_id = aws_apigatewayv2_integration.cors.id
+  integration_response_key = "/200/"
+  response_templates = {
+    "application/json" = ""
+  }
 }
