@@ -1,6 +1,14 @@
 resource "aws_apigatewayv2_api" "http_api" {
   name = "focusonyou-http-api"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_origins = [ "https://${var.s3_static_bucket_name}" ]
+    allow_headers = [ "Authorization", "Content-Type", "X-Amz-Date", "X-Amz-Security-Token", "X-Api-Key", "X-Amz-User-Agent" ]
+    allow_methods = [ "*" ]
+    allow_credentials = true
+    max_age = 300
+  }
 }
 
 locals {

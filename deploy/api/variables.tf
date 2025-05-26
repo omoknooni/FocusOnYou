@@ -23,6 +23,11 @@ variable "s3_media_bucket_name" {
   description = "S3 bucket name for media files"
 }
 
+variable "s3_static_bucket_name" {
+    type = string
+    description = "S3 bucket name to static website"
+}
+
 variable "dynamodb_table_name" {
   type = string
   description = "DynamoDB table name for job"
