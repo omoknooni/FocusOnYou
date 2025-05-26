@@ -13,6 +13,10 @@ resource "aws_lambda_function" "create_job" {
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
   timeout = 10
+
+  # source_code_hash를 통해서 연결된 lambda의 코드 변경을 감지
+  # data.archive_file.~~~.output_base64sha256를 통해서 아카이빙할 파일의 해시값계산
+  source_code_hash = data.archive_file.create_job.output_base64sha256
   environment {
     variables = {
       REGION = var.aws_region
@@ -35,6 +39,7 @@ resource "aws_lambda_function" "get_job" {
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
   timeout = 5
+  source_code_hash = data.archive_file.get_job.output_base64sha256
   environment {
     variables = {
       REGION = var.aws_region
@@ -56,6 +61,7 @@ resource "aws_lambda_function" "list_jobs" {
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
   timeout = 10
+  source_code_hash = data.archive_file.list_jobs.output_base64sha256
   environment {
     variables = {
       REGION = var.aws_region
@@ -76,6 +82,7 @@ resource "aws_lambda_function" "get_user" {
   handler = "get_user.lambda_handler"
   runtime = "python3.12"
   role = aws_iam_role.backend_role.arn
+  source_code_hash = data.archive_file.get_user.output_base64sha256
 }
 
 data "archive_file" "get_user" {
