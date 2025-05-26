@@ -58,7 +58,7 @@ export default function Upload() {
       });
       formData.append('file', imageFile);
 
-      await axios.post(data.presigned_urls.image.url, formData, {
+      await axios.post(data.presigned_data.image.url, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -70,7 +70,7 @@ export default function Upload() {
         videoFormData.append(key, value);
       });
 
-      await axios.post(data.presigned_urls.video.url, videoFormData, {
+      await axios.post(data.presigned_data.video.url, videoFormData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
